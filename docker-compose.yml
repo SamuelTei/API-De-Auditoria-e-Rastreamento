@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: audit-api-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: audit_api
+    ports:
+      - "5432:5432"
+    volumes:
+      - audit_api_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: audit-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/audit_api?schema=public"
+      JWT_SECRET: "troque-este-valor-por-um-segredo-forte"
+      JWT_EXPIRES_IN: "1d"
+    ports:
+      - "3000:3000"
+
+volumes:
+  audit_api_data:
